@@ -1,0 +1,44 @@
+InternBridge 
+ 
+<!DOCTYPE html> 
+ 
+<html class="light" lang="en"><head> 
+<meta charset="utf-8"/> 
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/> 
+<title>InternBridge | Welcome</title> 
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script> 
+<link 
+href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swa
+p" rel="stylesheet"/> 
+<link 
+href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..70
+0,0..1&amp;display=swap" rel="stylesheet"/> 
+<link 
+href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..70
+0,0..1&amp;display=swap" rel="stylesheet"/> 
+<script id="tailwind-config"> 
+        tailwind.config = { 
+            darkMode: "class", 
+            theme: { 
+                extend: { 
+                    "colors": { 
+                        "on-primary": "#ffffff", 
+                        "surface-dim": "#d9dadc", 
+                        "surface-tint": "#0c56d0", 
+                        "on-secondary-fixed": "#3d0600", 
+                        "surface-variant": "#e1e2e4", 
+                        "on-surface-variant": "#434654", 
+                        "on-tertiary": "#ffffff", 
+                        "surface-container": "#edeef0", 
+                        "surface": "#f8f9fb", 
+                        "error": "#ba1a1a", 
+                        "outline": "#737685", 
+                        "background": "#f8f9fb", 
+                        "surface-bright": "#f8f9fb", 
+                        "outline-variant": "#c3c6d6", 
+                        "inverse-primary": "#b2c5ff", 
+                        "on-error-container": "#93000a", 
+                        "on-surface": "#191c1e", 
+                        "on-tertiary-fixed-variant": "#00419d", 
+                        "secondary-fixed": "#ffdad2", 
+                        "tertiary-fixed-dim": "#b1c6ff", 
