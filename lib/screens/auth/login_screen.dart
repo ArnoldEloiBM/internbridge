@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import 'role_selection_screen.dart';
+import '../admin/admin_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,10 +28,18 @@ class _LoginScreenState extends State<LoginScreen> {
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         setState(() => _isLoading = false);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-        );
+        // Demo: admin login if email contains 'admin'
+        if (_emailCtrl.text.toLowerCase().contains('admin')) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminShell()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+          );
+        }
       }
     });
   }
