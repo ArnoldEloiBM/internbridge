@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
-import '../founder/founder_shell.dart';
+import 'auth_helpers.dart';
 
 class FounderRegisterScreen extends StatefulWidget {
   const FounderRegisterScreen({super.key});
@@ -27,18 +27,27 @@ class _FounderRegisterScreenState extends State<FounderRegisterScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      await handleRegisterFounder(
+        context,
+        name: _nameCtrl.text,
+        startupName: _startupCtrl.text,
+        email: _emailCtrl.text,
+        password: _passCtrl.text,
+      );
+    } catch (e) {
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const FounderShell()),
-          (_) => false,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
         );
       }
-    });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override

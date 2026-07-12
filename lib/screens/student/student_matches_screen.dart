@@ -1,66 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
+import '../../providers/app_provider.dart';
+import '../../utils/app_helpers.dart';
 import '../../widgets/shared_widgets.dart';
-
-const _matches = [
-  JobPosting(
-    id: '1',
-    title: 'Senior Frontend Intern',
-    company: 'QuantSphere Systems',
-    location: 'Remote',
-    type: 'Remote',
-    applicantCount: 30,
-    isActive: true,
-    matchScore: 95,
-    skills: ['React', 'Tailwind'],
-    salary: '\$1,200/mo',
-    postedDate: '2d ago',
-    isVerified: true,
-  ),
-  JobPosting(
-    id: '2',
-    title: 'Product Data Analyst',
-    company: 'Lumina Health',
-    location: 'Lagos, Nigeria (Hybrid)',
-    type: 'Hybrid',
-    applicantCount: 20,
-    isActive: true,
-    matchScore: 90,
-    skills: ['SQL', 'Python'],
-    salary: '\$800 - \$1,200/mo',
-    postedDate: '2d ago',
-    isVerified: true,
-  ),
-  JobPosting(
-    id: '3',
-    title: 'UI Designer',
-    company: 'Nova Creative',
-    location: 'Nairobi, Kenya',
-    type: 'Remote',
-    applicantCount: 18,
-    isActive: true,
-    matchScore: 88,
-    skills: ['Figma', 'Prototyping', 'Design Ops'],
-    salary: '\$700/mo',
-    postedDate: '3d ago',
-    isVerified: true,
-  ),
-  JobPosting(
-    id: '4',
-    title: 'Python Developer',
-    company: 'FinFlow Solutions',
-    location: 'Remote',
-    type: 'Remote',
-    applicantCount: 25,
-    isActive: true,
-    matchScore: 85,
-    skills: ['Python', 'Django', 'PostgreSQL'],
-    salary: '\$900/mo',
-    postedDate: '4d ago',
-    isVerified: false,
-  ),
-];
 
 class StudentMatchesScreen extends StatefulWidget {
   const StudentMatchesScreen({super.key});
@@ -79,8 +23,34 @@ class _StudentMatchesScreenState extends State<StudentMatchesScreen> {
     super.dispose();
   }
 
+  List<JobPosting> _filterJobs(List<JobPosting> jobs) {
+    var result = jobs;
+    final query = _searchCtrl.text.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      result = result
+          .where((j) =>
+              j.title.toLowerCase().contains(query) ||
+              j.company.toLowerCase().contains(query))
+          .toList();
+    }
+    switch (_activeFilter) {
+      case 'Remote':
+        result = result.where((j) => j.type == 'Remote').toList();
+        break;
+      case 'Verified Only':
+        result = result.where((j) => j.isVerified).toList();
+        break;
+      case 'Skills Match':
+        result = [...result]..sort((a, b) => b.matchScore.compareTo(a.matchScore));
+        break;
+    }
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -114,71 +84,94 @@ class _StudentMatchesScreenState extends State<StudentMatchesScreen> {
           child: Divider(height: 1, color: AppColors.outlineVariant),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Curated Matches',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            Text('Found 12 internships tailored to your profile.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(color: AppColors.onSurfaceVariant)),
-            const SizedBox(height: 16),
-            // Search
-            TextField(
-              controller: _searchCtrl,
-              decoration: const InputDecoration(
-                hintText: 'Search by role or startup...',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Filter chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: ['Skills Match', 'Startup', 'Remote', 'Verified Only']
-                    .map((f) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: FilterChip(
-                            label: Text(f),
-                            selected: _activeFilter == f,
-                            onSelected: (_) => setState(() => _activeFilter = f),
-                            selectedColor: AppColors.primary,
-                            labelStyle: TextStyle(
-                              color: _activeFilter == f
-                                  ? AppColors.onPrimary
-                                  : AppColors.onSurfaceVariant,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+      body: StreamBuilder<List<JobPosting>>(
+        stream: app.db.watchOpportunities(studentSkills: app.user?.skills ?? []),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final allJobs = snapshot.data ?? [];
+          final jobs = _filterJobs(allJobs);
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Curated Matches',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text('Found ${jobs.length} internships tailored to your profile.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(color: AppColors.onSurfaceVariant)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _searchCtrl,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    hintText: 'Search by role or startup...',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ['Skills Match', 'Startup', 'Remote', 'Verified Only']
+                        .map((f) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: Text(f),
+                                selected: _activeFilter == f,
+                                onSelected: (_) => setState(() => _activeFilter = f),
+                                selectedColor: AppColors.primary,
+                                labelStyle: TextStyle(
+                                  color: _activeFilter == f
+                                      ? AppColors.onPrimary
+                                      : AppColors.onSurfaceVariant,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                backgroundColor: AppColors.surface,
+                                side: const BorderSide(color: AppColors.outlineVariant),
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (jobs.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: Text(
+                        'No matches for this filter yet.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.onSurfaceVariant,
                             ),
-                            backgroundColor: AppColors.surface,
-                            side: const BorderSide(color: AppColors.outlineVariant),
-                          ),
-                        ))
-                    .toList(),
-              ),
+                      ),
+                    ),
+                  )
+                else ...[
+                  _FeaturedMatchCard(job: jobs.first),
+                  const SizedBox(height: 12),
+                  ...jobs.skip(1).map((job) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _MatchCard(job: job),
+                      )),
+                ],
+                const SizedBox(height: 12),
+                _CareerSpotlightCard(),
+              ],
             ),
-            const SizedBox(height: 16),
-            // Featured card
-            _FeaturedMatchCard(job: _matches[0]),
-            const SizedBox(height: 12),
-            // Regular cards
-            ..._matches.skip(1).map((job) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _MatchCard(job: job),
-                )),
-            // Career spotlight
-            _CareerSpotlightCard(),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -314,7 +307,7 @@ class _FeaturedMatchCard extends StatelessWidget {
                       }).toList(),
                     ),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () => applyForJob(context, job),
                       child: const Text('Apply Now'),
                     ),
                   ],

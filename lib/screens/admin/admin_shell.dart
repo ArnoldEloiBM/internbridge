@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../auth/auth_helpers.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_verification_screen.dart';
 import 'admin_users_screen.dart';
@@ -87,6 +88,11 @@ class _AdminShellState extends State<AdminShell> {
                   ],
                 ),
                 const SizedBox(width: 12),
+                IconButton(
+                  tooltip: 'Sign out',
+                  icon: const Icon(Icons.logout, color: AppColors.onSurfaceVariant),
+                  onPressed: () => handleSignOut(context),
+                ),
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: AppColors.primaryContainer,

@@ -1,24 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../models/models.dart';
+import '../../providers/app_provider.dart';
 import '../../widgets/shared_widgets.dart';
-
-enum _VerifStatus { pending, approved, declined }
-
-class _Startup {
-  final String name;
-  final String founder;
-  final String email;
-  final String submitted;
-  _VerifStatus status;
-
-  _Startup({
-    required this.name,
-    required this.founder,
-    required this.email,
-    required this.submitted,
-  this.status = _VerifStatus.pending,
-  });
-}
 
 class AdminVerificationScreen extends StatefulWidget {
   const AdminVerificationScreen({super.key});
@@ -29,148 +14,171 @@ class AdminVerificationScreen extends StatefulWidget {
 }
 
 class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
-  final List<_Startup> _startups = [
-    _Startup(name: 'CloudStream AI', founder: 'James Osei', email: 'james@cloudstream.ai', submitted: 'Today, 09:12 AM'),
-    _Startup(name: 'GreenLeaf Logistics', founder: 'Amina Diallo', email: 'amina@greenleaf.co', submitted: 'Yesterday, 04:30 PM'),
-    _Startup(name: 'OrbitPay Fintech', founder: 'Kweku Asante', email: 'kweku@orbitpay.io', submitted: 'Nov 24, 11:20 AM'),
-    _Startup(name: 'Nexus Innovations', founder: 'Sara Uwimana', email: 'sara@nexusinno.rw', submitted: 'Nov 23, 02:15 PM'),
-    _Startup(name: 'DataBridge Labs', founder: 'Liam Nkosi', email: 'liam@databridge.co', submitted: 'Nov 22, 10:00 AM'),
-  ];
-
   String _filter = 'All';
 
-  List<_Startup> get _filtered {
-    if (_filter == 'Pending') return _startups.where((s) => s.status == _VerifStatus.pending).toList();
-    if (_filter == 'Approved') return _startups.where((s) => s.status == _VerifStatus.approved).toList();
-    if (_filter == 'Declined') return _startups.where((s) => s.status == _VerifStatus.declined).toList();
-    return _startups;
-  }
-
-  void _approve(int i) {
-    final startup = _filtered[i];
-    setState(() => startup.status = _VerifStatus.approved);
-  }
-
-  void _decline(int i) {
-    final startup = _filtered[i];
-    setState(() => startup.status = _VerifStatus.declined);
+  List<AppUser> _filtered(List<AppUser> founders) {
+    if (_filter == 'Pending') {
+      return founders
+          .where((s) => s.verificationStatus == VerificationStatus.pending)
+          .toList();
+    }
+    if (_filter == 'Approved') {
+      return founders
+          .where((s) => s.verificationStatus == VerificationStatus.approved)
+          .toList();
+    }
+    if (_filter == 'Declined') {
+      return founders
+          .where((s) => s.verificationStatus == VerificationStatus.declined)
+          .toList();
+    }
+    return founders;
   }
 
   @override
   Widget build(BuildContext context) {
-    final pending = _startups.where((s) => s.status == _VerifStatus.pending).length;
+    final app = context.watch<AppProvider>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return StreamBuilder<List<AppUser>>(
+      stream: app.db.watchAllFounders(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final founders = snapshot.data ?? [];
+        final filtered = _filtered(founders);
+        final pending = founders
+            .where((s) => s.verificationStatus == VerificationStatus.pending)
+            .length;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Startup Verification',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                  Text('Review and approve startup accounts before they go live.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.onSurfaceVariant)),
-                ],
-              ),
-              if (pending > 0)
-                StatusChip(
-                  label: '$pending Pending',
-                  backgroundColor: const Color(0xFFFFF4E5),
-                  textColor: const Color(0xFFB76E00),
-                ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Filter tabs
-          Row(
-            children: ['All', 'Pending', 'Approved', 'Declined'].map((f) {
-              final isActive = _filter == f;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(f),
-                  selected: isActive,
-                  onSelected: (_) => setState(() => _filter = f),
-                  selectedColor: AppColors.primaryContainer,
-                  labelStyle: TextStyle(
-                    color: isActive ? AppColors.onPrimary : AppColors.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  backgroundColor: AppColors.surfaceContainerLowest,
-                  side: const BorderSide(color: AppColors.outlineVariant),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-
-          // Table
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.outlineVariant),
-            ),
-            child: Column(
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                  ),
-                  child: Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 3, child: _ColHeader('Startup')),
-                      Expanded(flex: 2, child: _ColHeader('Founder')),
-                      Expanded(flex: 2, child: _ColHeader('Submitted')),
-                      Expanded(child: _ColHeader('Status')),
-                      _ColHeader('Actions'),
-                    ],
-                  ),
-                ),
-                // Rows
-                if (_filtered.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Center(
-                      child: Text('No startups in this category.',
+                      Text('Startup Verification',
                           style: Theme.of(context)
                               .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: AppColors.onSurfaceVariant)),
+                              .headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.w700)),
+                      Text(
+                        'Review and approve startup accounts before they go live.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: AppColors.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                  if (pending > 0)
+                    StatusChip(
+                      label: '$pending Pending',
+                      backgroundColor: const Color(0xFFFFF4E5),
+                      textColor: const Color(0xFFB76E00),
                     ),
-                  )
-                else
-                  ..._filtered.asMap().entries.map((e) => _StartupRow(
-                        startup: e.value,
-                        onApprove: e.value.status == _VerifStatus.pending
-                            ? () => _approve(e.key)
-                            : null,
-                        onDecline: e.value.status == _VerifStatus.pending
-                            ? () => _decline(e.key)
-                            : null,
-                        showDivider: e.key < _filtered.length - 1,
-                      )),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: ['All', 'Pending', 'Approved', 'Declined'].map((f) {
+                  final isActive = _filter == f;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(f),
+                      selected: isActive,
+                      onSelected: (_) => setState(() => _filter = f),
+                      selectedColor: AppColors.primaryContainer,
+                      labelStyle: TextStyle(
+                        color: isActive
+                            ? AppColors.onPrimary
+                            : AppColors.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      backgroundColor: AppColors.surfaceContainerLowest,
+                      side: const BorderSide(color: AppColors.outlineVariant),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.outlineVariant),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceContainerLow,
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(12)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Expanded(flex: 3, child: _ColHeader('Startup')),
+                          Expanded(flex: 2, child: _ColHeader('Founder')),
+                          Expanded(flex: 2, child: _ColHeader('Submitted')),
+                          Expanded(child: _ColHeader('Status')),
+                          _ColHeader('Actions'),
+                        ],
+                      ),
+                    ),
+                    if (filtered.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Center(
+                          child: Text(
+                            founders.isEmpty
+                                ? 'No founder accounts yet. They appear here after registration.'
+                                : 'No startups in this category.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: AppColors.onSurfaceVariant),
+                          ),
+                        ),
+                      )
+                    else
+                      ...filtered.asMap().entries.map(
+                            (e) => _StartupRow(
+                              founder: e.value,
+                              onApprove: e.value.verificationStatus ==
+                                      VerificationStatus.pending
+                                  ? () => app.db.updateVerification(
+                                        e.value.id,
+                                        VerificationStatus.approved,
+                                      )
+                                  : null,
+                              onDecline: e.value.verificationStatus ==
+                                      VerificationStatus.pending
+                                  ? () => app.db.updateVerification(
+                                        e.value.id,
+                                        VerificationStatus.declined,
+                                      )
+                                  : null,
+                              showDivider: e.key < filtered.length - 1,
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -190,39 +198,48 @@ class _ColHeader extends StatelessWidget {
 }
 
 class _StartupRow extends StatelessWidget {
-  final _Startup startup;
+  final AppUser founder;
   final VoidCallback? onApprove;
   final VoidCallback? onDecline;
   final bool showDivider;
 
   const _StartupRow({
-    required this.startup,
+    required this.founder,
     required this.onApprove,
     required this.onDecline,
     required this.showDivider,
   });
 
   Color get _statusBg {
-    switch (startup.status) {
-      case _VerifStatus.approved: return const Color(0xFFE6F4EA);
-      case _VerifStatus.declined: return const Color(0xFFFFDAD6);
-      default: return const Color(0xFFFFF4E5);
+    switch (founder.verificationStatus) {
+      case VerificationStatus.approved:
+        return const Color(0xFFE6F4EA);
+      case VerificationStatus.declined:
+        return const Color(0xFFFFDAD6);
+      default:
+        return const Color(0xFFFFF4E5);
     }
   }
 
   Color get _statusFg {
-    switch (startup.status) {
-      case _VerifStatus.approved: return const Color(0xFF1E7E34);
-      case _VerifStatus.declined: return AppColors.error;
-      default: return const Color(0xFFB76E00);
+    switch (founder.verificationStatus) {
+      case VerificationStatus.approved:
+        return const Color(0xFF1E7E34);
+      case VerificationStatus.declined:
+        return AppColors.error;
+      default:
+        return const Color(0xFFB76E00);
     }
   }
 
   String get _statusLabel {
-    switch (startup.status) {
-      case _VerifStatus.approved: return 'Approved';
-      case _VerifStatus.declined: return 'Declined';
-      default: return 'Pending';
+    switch (founder.verificationStatus) {
+      case VerificationStatus.approved:
+        return 'Approved';
+      case VerificationStatus.declined:
+        return 'Declined';
+      default:
+        return 'Pending';
     }
   }
 
@@ -249,7 +266,7 @@ class _StartupRow extends StatelessWidget {
                           color: AppColors.onSurfaceVariant, size: 18),
                     ),
                     const SizedBox(width: 10),
-                    Text(startup.name,
+                    Text(founder.startupName ?? 'Unnamed startup',
                         style: Theme.of(context)
                             .textTheme
                             .titleSmall
@@ -262,9 +279,9 @@ class _StartupRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(startup.founder,
+                    Text(founder.name,
                         style: Theme.of(context).textTheme.bodySmall),
-                    Text(startup.email,
+                    Text(founder.email,
                         style: Theme.of(context)
                             .textTheme
                             .labelSmall
@@ -274,11 +291,13 @@ class _StartupRow extends StatelessWidget {
               ),
               Expanded(
                 flex: 2,
-                child: Text(startup.submitted,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.onSurfaceVariant)),
+                child: Text(
+                  _formatDate(founder.createdAt),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppColors.onSurfaceVariant),
+                ),
               ),
               Expanded(
                 child: StatusChip(
@@ -292,13 +311,17 @@ class _StartupRow extends StatelessWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.close, size: 18),
-                    color: onDecline != null ? AppColors.error : AppColors.outlineVariant,
+                    color: onDecline != null
+                        ? AppColors.error
+                        : AppColors.outlineVariant,
                     tooltip: 'Decline',
                     onPressed: onDecline,
                   ),
                   IconButton(
                     icon: const Icon(Icons.check, size: 18),
-                    color: onApprove != null ? AppColors.primary : AppColors.outlineVariant,
+                    color: onApprove != null
+                        ? AppColors.primary
+                        : AppColors.outlineVariant,
                     tooltip: 'Approve',
                     onPressed: onApprove,
                   ),
@@ -312,4 +335,12 @@ class _StartupRow extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatDate(DateTime date) {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  return '${months[date.month - 1]} ${date.day}, ${date.year}';
 }

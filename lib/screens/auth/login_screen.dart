@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import 'auth_helpers.dart';
 import 'role_selection_screen.dart';
-import '../admin/admin_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,25 +23,26 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _signIn() {
+  Future<void> _signIn() async {
+    if (_emailCtrl.text.trim().isEmpty || _passwordCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email and password.')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      await handleLogin(context, _emailCtrl.text, _passwordCtrl.text);
+    } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
-        // Demo: admin login if email contains 'admin'
-        if (_emailCtrl.text.toLowerCase().contains('admin')) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminShell()),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
       }
-    });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override

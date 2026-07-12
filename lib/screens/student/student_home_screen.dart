@@ -1,65 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
+import '../../providers/app_provider.dart';
+import '../../utils/app_helpers.dart';
 import '../../widgets/shared_widgets.dart';
-
-const _jobs = [
-  JobPosting(
-    id: '1',
-    title: 'Software Developer',
-    company: 'NexGen Systems',
-    location: 'Remote',
-    type: 'Remote',
-    applicantCount: 42,
-    isActive: true,
-    matchScore: 90,
-    skills: ['React', 'Node.js'],
-    salary: '\$800/mo',
-    postedDate: 'Oct 12, 2023',
-    isVerified: true,
-  ),
-  JobPosting(
-    id: '2',
-    title: 'Marketing Assistant',
-    company: 'GrowthHackers Co.',
-    location: 'Lagos, Nigeria',
-    type: 'Hybrid',
-    applicantCount: 28,
-    isActive: true,
-    matchScore: 85,
-    skills: ['Social Media', 'Content'],
-    salary: '\$600/mo',
-    postedDate: 'Oct 05, 2023',
-    isVerified: true,
-  ),
-  JobPosting(
-    id: '3',
-    title: 'UI Designer',
-    company: 'PixelPerfect Lab',
-    location: 'Kigali, Rwanda',
-    type: 'On-site',
-    applicantCount: 15,
-    isActive: true,
-    matchScore: 70,
-    skills: ['Figma', 'Design Ops'],
-    salary: '\$700/mo',
-    postedDate: 'Sept 20, 2023',
-    isVerified: true,
-  ),
-];
 
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppProvider>();
+    final name = app.user?.name ?? 'Student';
+
     return Scaffold(
       appBar: AppBar(
         leading: Padding(
           padding: const EdgeInsets.all(8),
           child: CircleAvatar(
             backgroundColor: AppColors.surfaceContainerHigh,
-            child: const Icon(Icons.person, color: AppColors.onSurfaceVariant, size: 20),
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: const TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
         title: Text(
@@ -69,76 +36,117 @@ class StudentHomeScreen extends StatelessWidget {
               .titleLarge
               ?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.swap_horiz, color: AppColors.primary),
-            onPressed: () {},
-          ),
-        ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, color: AppColors.outlineVariant),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome
-            Text(
-              '👋 Welcome Arnold',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Ready to accelerate your professional momentum today?',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppColors.onSurfaceVariant),
-            ),
-            const SizedBox(height: 24),
-            // Stats row
-            Row(
+      body: StreamBuilder<List<JobPosting>>(
+        stream: app.db.watchOpportunities(studentSkills: app.user?.skills ?? []),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final jobs = snapshot.data ?? [];
+          if (jobs.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'No opportunities yet. Check back soon — ALU startups are posting regularly.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                ),
+              ),
+            );
+          }
+
+          final featured = jobs.first;
+          final others = jobs.length > 1 ? jobs.sublist(1, jobs.length.clamp(1, 3)) : <JobPosting>[];
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _ApplicationsCard()),
-                const SizedBox(width: 12),
-                Expanded(child: _BookmarksCard()),
+                Text(
+                  '👋 Welcome ${firstName(name)}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Ready to accelerate your professional momentum today?',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 24),
+                StreamBuilder<List<Application>>(
+                  stream: app.user == null
+                      ? null
+                      : app.db.watchStudentApplications(app.user!.id),
+                  builder: (context, appSnap) {
+                    final apps = appSnap.data ?? [];
+                    return Row(
+                      children: [
+                        Expanded(child: _ApplicationsCard(applications: apps)),
+                        const SizedBox(width: 12),
+                        const Expanded(child: _BookmarksCard()),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Recommended For You',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                _FeaturedJobCard(job: featured),
+                if (others.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (others.isNotEmpty)
+                        Expanded(child: _SmallJobCard(job: others[0])),
+                      if (others.length > 1) ...[
+                        const SizedBox(width: 12),
+                        Expanded(child: _SmallJobCard(job: others[1])),
+                      ],
+                    ],
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Recommended For You',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            // Featured job card
-            _FeaturedJobCard(job: _jobs[0]),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _SmallJobCard(job: _jobs[1])),
-                const SizedBox(width: 12),
-                Expanded(child: _SmallJobCard(job: _jobs[2])),
-              ],
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
 class _ApplicationsCard extends StatelessWidget {
+  final List<Application> applications;
+  const _ApplicationsCard({required this.applications});
+
   @override
   Widget build(BuildContext context) {
+    final pending = applications
+        .where((a) => ['Applied', 'Viewed'].contains(a.status))
+        .length;
+    final accepted = applications.where((a) => a.status == 'Accepted').length;
+    final rejected = applications.where((a) => a.status == 'Rejected').length;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -164,9 +172,17 @@ class _ApplicationsCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _StatBadge(count: '2', label: 'Pending', color: const Color(0xFFFFEB3B)),
-              _StatBadge(count: '1', label: 'Accepted', color: const Color(0xFF4CAF50), textColor: Colors.white),
-              _StatBadge(count: '1', label: 'Rejected', color: const Color(0xFFFF5630), textColor: Colors.white),
+              _StatBadge(count: '$pending', label: 'Pending', color: const Color(0xFFFFEB3B)),
+              _StatBadge(
+                  count: '$accepted',
+                  label: 'Accepted',
+                  color: const Color(0xFF4CAF50),
+                  textColor: Colors.white),
+              _StatBadge(
+                  count: '$rejected',
+                  label: 'Rejected',
+                  color: const Color(0xFFFF5630),
+                  textColor: Colors.white),
             ],
           ),
         ],
@@ -223,6 +239,8 @@ class _StatBadge extends StatelessWidget {
 }
 
 class _BookmarksCard extends StatelessWidget {
+  const _BookmarksCard();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -261,7 +279,7 @@ class _BookmarksCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Text('8',
+                  child: Text('—',
                       style: TextStyle(
                           color: AppColors.onPrimary,
                           fontWeight: FontWeight.bold,
@@ -271,26 +289,11 @@ class _BookmarksCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: ['GT', 'MS', 'AP', '+5'].map((label) {
-              return Container(
-                margin: const EdgeInsets.only(right: 4),
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+          Text(
+            'Save roles from Matches to track them here.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.onSurfaceVariant,
                 ),
-                child: Center(
-                  child: Text(label,
-                      style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.onSurfaceVariant)),
-                ),
-              );
-            }).toList(),
           ),
         ],
       ),
@@ -355,25 +358,13 @@ class _FeaturedJobCard extends StatelessWidget {
                 Row(
                   children: [
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () => applyForJob(context, job),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: const Text('Apply Now', style: TextStyle(fontSize: 12)),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                      ),
-                      child: const Text('Details', style: TextStyle(fontSize: 12)),
                     ),
                   ],
                 ),
@@ -456,7 +447,7 @@ class _SmallJobCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () => applyForJob(context, job),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 minimumSize: Size.zero,

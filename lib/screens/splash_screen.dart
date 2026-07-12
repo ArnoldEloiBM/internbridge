@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/theme.dart';
+import '../providers/app_provider.dart';
+import 'auth/auth_helpers.dart';
 import 'auth/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -35,8 +38,12 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) setState(() => _loadingProgress = 1.0);
     });
 
-    Future.delayed(const Duration(milliseconds: 3200), () {
-      if (mounted) {
+    Future.delayed(const Duration(milliseconds: 2800), () {
+      if (!mounted) return;
+      final user = context.read<AppProvider>().user;
+      if (user != null) {
+        navigateForUser(context, user);
+      } else {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -67,7 +74,6 @@ class _SplashScreenState extends State<SplashScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const SizedBox(height: 64),
-              // Logo & Brand
               FadeTransition(
                 opacity: _fadeAnim,
                 child: ScaleTransition(
@@ -82,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.2),
+                              color: AppColors.primary.withValues(alpha: 0.2),
                               blurRadius: 24,
                               offset: const Offset(0, 8),
                             ),
@@ -114,7 +120,6 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
               ),
-              // Bottom: Partner + Loading
               Padding(
                 padding: const EdgeInsets.only(bottom: 48),
                 child: FadeTransition(
@@ -153,7 +158,6 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                       ),
                       const SizedBox(height: 24),
-                      // Loading bar
                       SizedBox(
                         width: 128,
                         child: ClipRRect(

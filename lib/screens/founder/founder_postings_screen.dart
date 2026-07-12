@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../models/models.dart';
+import '../../providers/app_provider.dart';
 
 class FounderPostingsScreen extends StatefulWidget {
   const FounderPostingsScreen({super.key});
@@ -9,38 +12,95 @@ class FounderPostingsScreen extends StatefulWidget {
 }
 
 class _FounderPostingsScreenState extends State<FounderPostingsScreen> {
-  final List<_Posting> _postings = [
-    _Posting(
-        icon: Icons.code,
-        iconBg: AppColors.primaryFixed,
-        iconColor: AppColors.primary,
-        title: 'Software Engineer Intern',
-        date: 'Oct 12, 2023',
-        applicants: 42,
-        type: 'Remote',
-        isActive: true),
-    _Posting(
-        icon: Icons.campaign,
-        iconBg: Color(0xFFFFDAD2),
-        iconColor: AppColors.secondary,
-        title: 'Marketing Assistant',
-        date: 'Oct 05, 2023',
-        applicants: 28,
-        type: 'On-site',
-        isActive: true),
-    _Posting(
-        icon: Icons.brush,
-        iconBg: AppColors.surfaceContainer,
-        iconColor: AppColors.outline,
-        title: 'UI/UX Design Intern',
-        date: 'Sept 20, 2023',
-        applicants: 15,
-        type: '',
-        isActive: false),
-  ];
+  Future<void> _showPostDialog() async {
+    final titleCtrl = TextEditingController();
+    final locationCtrl = TextEditingController(text: 'Remote');
+    final salaryCtrl = TextEditingController(text: 'Stipend TBD');
+    final skillsCtrl = TextEditingController(text: 'Flutter, Teamwork');
+    String workType = 'Remote';
+
+    final posted = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Post New Internship'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(labelText: 'Role title'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: locationCtrl,
+                decoration: const InputDecoration(labelText: 'Location'),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: workType,
+                decoration: const InputDecoration(labelText: 'Work type'),
+                items: ['Remote', 'Hybrid', 'On-site']
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .toList(),
+                onChanged: (v) => workType = v ?? 'Remote',
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: salaryCtrl,
+                decoration: const InputDecoration(labelText: 'Stipend / salary'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: skillsCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Skills (comma separated)',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Publish')),
+        ],
+      ),
+    );
+
+    if (posted != true || !mounted) return;
+    if (titleCtrl.text.trim().isEmpty) return;
+
+    try {
+      await context.read<AppProvider>().createPosting(
+            title: titleCtrl.text.trim(),
+            location: locationCtrl.text.trim(),
+            type: workType,
+            salary: salaryCtrl.text.trim(),
+            skills: skillsCtrl.text
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList(),
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Internship posted to Firestore.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppProvider>();
+    final founderId = app.user?.id;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -53,196 +113,164 @@ class _FounderPostingsScreenState extends State<FounderPostingsScreen> {
                     color: AppColors.primary, fontWeight: FontWeight.w800)),
           ],
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.surfaceContainerHigh,
-              child: const Icon(Icons.person,
-                  size: 18, color: AppColors.onSurfaceVariant),
-            ),
-          ),
-        ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, color: AppColors.outlineVariant),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Active Postings',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                    Text('Manage your internship listings.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.onSurfaceVariant)),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Post New'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Stats
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.outlineVariant),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('TOTAL APPLICATIONS',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                        color: AppColors.onSurfaceVariant,
-                                        letterSpacing: 0.5)),
-                            Text('148',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineLarge
-                                    ?.copyWith(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        Container(
-                          width: 80,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryFixed.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(8),
+      body: founderId == null
+          ? const Center(child: Text('Sign in as a founder to manage postings.'))
+          : StreamBuilder<List<JobPosting>>(
+              stream: app.db.watchFounderOpportunities(founderId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final postings = snapshot.data ?? [];
+                final activeCount = postings.where((p) => p.isActive).length;
+                final totalApplicants =
+                    postings.fold<int>(0, (sum, p) => sum + p.applicantCount);
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Active Postings',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(fontWeight: FontWeight.w700)),
+                              Text('Manage your internship listings.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(color: AppColors.onSurfaceVariant)),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: _showPostDialog,
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Post New'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.outlineVariant),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('TOTAL APPLICATIONS',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                              color: AppColors.onSurfaceVariant,
+                                              letterSpacing: 0.5)),
+                                  Text('$totalApplicants',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineLarge
+                                          ?.copyWith(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('ACTIVE',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                              color: AppColors.onPrimaryContainer
+                                                  .withValues(alpha: 0.8),
+                                              letterSpacing: 0.5)),
+                                  Text('$activeCount',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineLarge
+                                          ?.copyWith(
+                                              color: AppColors.onPrimaryContainer,
+                                              fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      if (postings.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: Text(
+                              'No postings yet. Tap Post New to create your first listing.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                            ),
+                          ),
+                        )
+                      else
+                        ...postings.map(
+                          (job) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _PostingCard(
+                              job: job,
+                              onToggle: (val) =>
+                                  app.db.toggleOpportunity(job.id, val),
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('ACTIVE',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                    color: AppColors.onPrimaryContainer
-                                        .withOpacity(0.8),
-                                    letterSpacing: 0.5)),
-                        Text('12',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineLarge
-                                ?.copyWith(
-                                    color: AppColors.onPrimaryContainer,
-                                    fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
-            const SizedBox(height: 20),
-            // Posting cards
-            ..._postings.asMap().entries.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _PostingCard(
-                    posting: e.value,
-                    onToggle: (val) => setState(
-                        () => _postings[e.key] = e.value.copyWith(isActive: val)),
-                  ),
-                )),
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                onPressed: () {},
-                child: const Text('View 12 More Archived Postings'),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
 
-class _Posting {
-  final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
-  final String title;
-  final String date;
-  final int applicants;
-  final String type;
-  final bool isActive;
-
-  const _Posting({
-    required this.icon,
-    required this.iconBg,
-    required this.iconColor,
-    required this.title,
-    required this.date,
-    required this.applicants,
-    required this.type,
-    required this.isActive,
-  });
-
-  _Posting copyWith({bool? isActive}) => _Posting(
-        icon: icon,
-        iconBg: iconBg,
-        iconColor: iconColor,
-        title: title,
-        date: date,
-        applicants: applicants,
-        type: type,
-        isActive: isActive ?? this.isActive,
-      );
-}
-
 class _PostingCard extends StatelessWidget {
-  final _Posting posting;
+  final JobPosting job;
   final ValueChanged<bool> onToggle;
 
-  const _PostingCard({required this.posting, required this.onToggle});
+  const _PostingCard({required this.job, required this.onToggle});
 
   @override
   Widget build(BuildContext context) {
     return Opacity(
-      opacity: posting.isActive ? 1.0 : 0.6,
+      opacity: job.isActive ? 1.0 : 0.6,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -256,17 +284,17 @@ class _PostingCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: posting.iconBg,
+                color: AppColors.primaryFixed,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(posting.icon, color: posting.iconColor),
+              child: const Icon(Icons.work_outline, color: AppColors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(posting.title,
+                  Text(job.title,
                       style: Theme.of(context)
                           .textTheme
                           .titleSmall
@@ -275,54 +303,22 @@ class _PostingCard extends StatelessWidget {
                   Wrap(
                     spacing: 12,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.calendar_today_outlined,
-                              size: 14, color: AppColors.onSurfaceVariant),
-                          const SizedBox(width: 4),
-                          Text('Posted ${posting.date}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: AppColors.onSurfaceVariant)),
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.group_outlined,
-                              size: 14, color: AppColors.onSurfaceVariant),
-                          const SizedBox(width: 4),
-                          Text('${posting.applicants} Applicants',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: AppColors.onSurfaceVariant)),
-                        ],
-                      ),
-                      if (posting.type.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: posting.type == 'Remote'
-                                ? AppColors.primaryFixed.withOpacity(0.3)
-                                : AppColors.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                                color: posting.type == 'Remote'
-                                    ? AppColors.primary.withOpacity(0.3)
-                                    : AppColors.outlineVariant),
-                          ),
-                          child: Text(posting.type,
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: posting.type == 'Remote'
-                                      ? AppColors.primary
-                                      : AppColors.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600)),
-                        ),
+                      Text('Posted ${job.postedDate}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppColors.onSurfaceVariant)),
+                      Text('${job.applicantCount} Applicants',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppColors.onSurfaceVariant)),
+                      if (job.type.isNotEmpty)
+                        Text(job.type,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ],
@@ -331,23 +327,19 @@ class _PostingCard extends StatelessWidget {
             Column(
               children: [
                 Switch(
-                  value: posting.isActive,
+                  value: job.isActive,
                   onChanged: onToggle,
-                  activeColor: AppColors.primaryContainer,
+                  activeThumbColor: AppColors.primaryContainer,
                 ),
                 Text(
-                  posting.isActive ? 'Active' : 'Closed',
+                  job.isActive ? 'Active' : 'Closed',
                   style: TextStyle(
                       fontSize: 11,
-                      color: posting.isActive
+                      color: job.isActive
                           ? AppColors.onSurface
                           : AppColors.onSurfaceVariant),
                 ),
               ],
-            ),
-            IconButton(
-              icon: const Icon(Icons.more_vert, color: AppColors.onSurfaceVariant),
-              onPressed: () {},
             ),
           ],
         ),

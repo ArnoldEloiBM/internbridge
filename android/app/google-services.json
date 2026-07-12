@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "509264837027",
+    "project_id": "internbridge-4b9be",
+    "storage_bucket": "internbridge-4b9be.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:509264837027:android:e3fd20c1cb562208a84216",
+        "android_client_info": {
+          "package_name": "com.example.internbridge"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJ1EnzzpN91AIYfddsbWXp9SSC_MDcD6E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

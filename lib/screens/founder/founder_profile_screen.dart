@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../models/models.dart';
+import '../../providers/app_provider.dart';
 import '../../widgets/shared_widgets.dart';
+import '../auth/auth_helpers.dart';
 
 class FounderProfileScreen extends StatelessWidget {
   const FounderProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AppProvider>().user;
+    final startup = user?.startupName ?? 'Your Startup';
+    final isVerified =
+        user?.verificationStatus == VerificationStatus.approved;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -88,38 +97,40 @@ class FounderProfileScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Text('NexusFlow',
+                                Text(startup,
                                     style: Theme.of(context)
                                         .textTheme
                                         .headlineSmall
                                         ?.copyWith(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryContainer,
-                                    borderRadius: BorderRadius.circular(999),
+                                if (isVerified) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryContainer,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.verified,
+                                            size: 12,
+                                            color: AppColors.onPrimaryContainer),
+                                        const SizedBox(width: 4),
+                                        Text('ALU Verified',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(
+                                                    color: AppColors
+                                                        .onPrimaryContainer)),
+                                      ],
+                                    ),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.verified,
-                                          size: 12,
-                                          color: AppColors.onPrimaryContainer),
-                                      const SizedBox(width: 4),
-                                      Text('ALU Verified',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                  color: AppColors
-                                                      .onPrimaryContainer)),
-                                    ],
-                                  ),
-                                ),
+                                ],
                               ],
                             ),
                             Text(
@@ -190,6 +201,22 @@ class FounderProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => handleSignOut(context),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sign Out'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),

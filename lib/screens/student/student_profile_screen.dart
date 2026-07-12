@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../providers/app_provider.dart';
 import '../../widgets/shared_widgets.dart';
+import '../auth/auth_helpers.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AppProvider>().user;
+    final name = user?.name ?? 'Student';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -58,7 +65,7 @@ class StudentProfileScreen extends StatelessWidget {
                           CircleAvatar(
                             radius: 44,
                             backgroundColor: AppColors.surfaceContainerHigh,
-                            child: Text('J',
+                            child: Text(initial,
                                 style: Theme.of(context)
                                     .textTheme
                                     .headlineLarge
@@ -88,7 +95,7 @@ class StudentProfileScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Text('Jordan Mensah',
+                                Text(name,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleLarge
@@ -379,6 +386,19 @@ class StudentProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => handleSignOut(context),
+                icon: const Icon(Icons.logout),
+                label: const Text('Sign Out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                ),
               ),
             ),
           ],

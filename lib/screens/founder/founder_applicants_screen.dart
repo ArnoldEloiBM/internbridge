@@ -1,46 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
+import '../../providers/app_provider.dart';
 import '../../widgets/shared_widgets.dart';
-
-const _applicants = [
-  Applicant(
-    id: '1',
-    name: 'Amara Okafor',
-    university: 'ALU (African Leadership University)',
-    jobApplied: 'Product Design Intern',
-    matchScore: 94,
-    status: 'New',
-    avatarUrl: '',
-  ),
-  Applicant(
-    id: '2',
-    name: 'Kwame Mensah',
-    university: 'ALU (African Leadership University)',
-    jobApplied: 'Software Engineer Intern',
-    matchScore: 88,
-    status: 'Shortlisted',
-    avatarUrl: '',
-  ),
-  Applicant(
-    id: '3',
-    name: 'Sara Hassan',
-    university: 'ALU (African Leadership University)',
-    jobApplied: 'Marketing Associate',
-    matchScore: 65,
-    status: 'Interviewing',
-    avatarUrl: '',
-  ),
-  Applicant(
-    id: '4',
-    name: 'Jean-Luc Bizimana',
-    university: 'ALU (African Leadership University)',
-    jobApplied: 'Product Design Intern',
-    matchScore: 92,
-    status: 'New',
-    avatarUrl: '',
-  ),
-];
 
 Color _statusBg(String status) {
   switch (status) {
@@ -80,8 +43,25 @@ class _FounderApplicantsScreenState extends State<FounderApplicantsScreen> {
   String _roleFilter = 'Job Title: All Roles';
   String _scoreFilter = 'Match Score: Highest First';
 
+  List<Applicant> _filterApplicants(List<Applicant> list) {
+    var result = [...list];
+    if (_roleFilter != 'Job Title: All Roles') {
+      result = result.where((a) => a.jobApplied == _roleFilter).toList();
+    }
+    if (_scoreFilter == '80% - 100% Match') {
+      result = result.where((a) => a.matchScore >= 80).toList();
+    } else if (_scoreFilter == '50% - 79% Match') {
+      result = result.where((a) => a.matchScore >= 50 && a.matchScore < 80).toList();
+    }
+    result.sort((a, b) => b.matchScore.compareTo(a.matchScore));
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppProvider>();
+    final founderId = app.user?.id;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -111,149 +91,147 @@ class _FounderApplicantsScreenState extends State<FounderApplicantsScreen> {
           child: Divider(height: 1, color: AppColors.outlineVariant),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Applicants',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            Text('Review and manage talent across all your open internship positions.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.onSurfaceVariant)),
-            const SizedBox(height: 16),
-            // Filters
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _roleFilter,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.filter_list, size: 18),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: [
-                      'Job Title: All Roles',
-                      'Product Design Intern',
-                      'Software Engineer Intern',
-                      'Marketing Associate',
-                    ]
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v, style: const TextStyle(fontSize: 12))))
-                        .toList(),
-                    onChanged: (v) => setState(() => _roleFilter = v!),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _scoreFilter,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.insights, size: 18),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: [
-                      'Match Score: Highest First',
-                      '80% - 100% Match',
-                      '50% - 79% Match',
-                    ]
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v, style: const TextStyle(fontSize: 12))))
-                        .toList(),
-                    onChanged: (v) => setState(() => _scoreFilter = v!),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10)),
-                  child: const Text('Apply Filters'),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: () => setState(() {
-                    _roleFilter = 'Job Title: All Roles';
-                    _scoreFilter = 'Match Score: Highest First';
-                  }),
-                  style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.onSurfaceVariant,
-                      side: const BorderSide(color: AppColors.outlineVariant),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10)),
-                  child: const Text('Reset'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Applicant cards grid
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.85,
-              ),
-              itemCount: _applicants.length,
-              itemBuilder: (_, i) => _ApplicantCard(applicant: _applicants[i]),
-            ),
-            const SizedBox(height: 16),
-            // Recruitment momentum banner
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Recruitment Momentum',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.onPrimaryContainer,
-                          fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'You have 12 active internship roles with over 140 applicants. The average match score across top-tier talent is 82%.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.onPrimaryContainer.withValues(alpha: 0.9)),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
+      body: founderId == null
+          ? const Center(child: Text('Sign in as a founder to view applicants.'))
+          : StreamBuilder<List<Applicant>>(
+              stream: app.db.watchFounderApplicants(founderId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final all = snapshot.data ?? [];
+                final applicants = _filterApplicants(all);
+                final roles = {
+                  'Job Title: All Roles',
+                  ...all.map((a) => a.jobApplied),
+                }.toList();
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _MomentumStat(value: '142', label: 'Total Applicants'),
-                      const SizedBox(width: 24),
-                      _MomentumStat(value: '28', label: 'Interviews Set'),
-                      const SizedBox(width: 24),
-                      _MomentumStat(value: '14', label: 'Final Stage'),
+                      Text('Applicants',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 4),
+                      Text('Review talent applying to your open roles.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: AppColors.onSurfaceVariant)),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _roleFilter,
+                              decoration: const InputDecoration(
+                                prefixIcon: Icon(Icons.filter_list, size: 18),
+                                contentPadding:
+                                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              items: roles
+                                  .map((v) => DropdownMenuItem(
+                                      value: v,
+                                      child: Text(v, style: const TextStyle(fontSize: 12))))
+                                  .toList(),
+                              onChanged: (v) => setState(() => _roleFilter = v!),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _scoreFilter,
+                              decoration: const InputDecoration(
+                                prefixIcon: Icon(Icons.insights, size: 18),
+                                contentPadding:
+                                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              items: [
+                                'Match Score: Highest First',
+                                '80% - 100% Match',
+                                '50% - 79% Match',
+                              ]
+                                  .map((v) => DropdownMenuItem(
+                                      value: v,
+                                      child: Text(v, style: const TextStyle(fontSize: 12))))
+                                  .toList(),
+                              onChanged: (v) => setState(() => _scoreFilter = v!),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (applicants.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: Text(
+                              'No applicants yet. Post an internship to start receiving applications.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                            ),
+                          ),
+                        )
+                      else
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.85,
+                          ),
+                          itemCount: applicants.length,
+                          itemBuilder: (_, i) => _ApplicantCard(
+                            applicant: applicants[i],
+                            onShortlist: () => app.db
+                                .updateApplicationStatus(applicants[i].id, 'Shortlisted'),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Recruitment Momentum',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: AppColors.onPrimaryContainer,
+                                    fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${all.length} applicants across your listings so far.',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.onPrimaryContainer.withValues(alpha: 0.9)),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
-          ],
-        ),
-      ),
     );
   }
 }
 
 class _ApplicantCard extends StatelessWidget {
   final Applicant applicant;
-  const _ApplicantCard({required this.applicant});
+  final VoidCallback onShortlist;
+  const _ApplicantCard({required this.applicant, required this.onShortlist});
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +317,7 @@ class _ApplicantCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: onShortlist,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: const BorderSide(color: AppColors.primary),
@@ -348,7 +326,7 @@ class _ApplicantCard extends StatelessWidget {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     textStyle: const TextStyle(fontSize: 11),
                   ),
-                  child: const Text('View Profile'),
+                  child: const Text('Shortlist'),
                 ),
               ),
               const SizedBox(width: 6),
@@ -370,31 +348,6 @@ class _ApplicantCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _MomentumStat extends StatelessWidget {
-  final String value;
-  final String label;
-  const _MomentumStat({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.onPrimaryContainer,
-                fontWeight: FontWeight.bold)),
-        Text(label.toUpperCase(),
-            style: TextStyle(
-                fontSize: 9,
-                color: AppColors.onPrimaryContainer.withValues(alpha: 0.8),
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5)),
-      ],
     );
   }
 }

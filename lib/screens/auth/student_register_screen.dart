@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
-import '../student/student_shell.dart';
+import 'auth_helpers.dart';
 
 class StudentRegisterScreen extends StatefulWidget {
   const StudentRegisterScreen({super.key});
@@ -29,7 +29,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,16 +43,24 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
       );
       return;
     }
+
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      await handleRegisterStudent(
+        context,
+        name: _nameCtrl.text,
+        email: _emailCtrl.text,
+        password: _passCtrl.text,
+      );
+    } catch (e) {
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const StudentShell()),
-          (_) => false,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
         );
       }
-    });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
