@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../providers/app_provider.dart';
 
-/// Top-bar avatar showing the logged-in user's initial. Taps open Profile tab.
 class ProfileAvatarButton extends StatelessWidget {
   final double radius;
   const ProfileAvatarButton({super.key, this.radius = 16});
@@ -14,7 +13,7 @@ class ProfileAvatarButton extends StatelessWidget {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(right: 9),
       child: GestureDetector(
         onTap: () => context.read<AppProvider>().requestTab(3),
         child: CircleAvatar(

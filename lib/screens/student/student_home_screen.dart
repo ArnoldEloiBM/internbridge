@@ -83,6 +83,7 @@ class StudentHomeScreen extends StatelessWidget {
               children: [
                 Text(
                   '👋 Welcome ${firstName(name)}',
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context)
                       .textTheme
                       .headlineMedium
@@ -280,7 +281,7 @@ class _FeaturedJobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
@@ -290,25 +291,27 @@ class _FeaturedJobCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.work_outline, color: AppColors.primary, size: 28),
+            child: const Icon(Icons.work_outline, color: AppColors.primary, size: 26),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(job.title,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w600)),
                 Text(job.company,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall
@@ -318,6 +321,7 @@ class _FeaturedJobCard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 8),
           MatchScoreRing(score: job.matchScore),
         ],
       ),
@@ -333,7 +337,7 @@ class _SmallJobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
@@ -346,18 +350,18 @@ class _SmallJobCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: AppColors.primaryFixed,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.trending_up, color: AppColors.primary, size: 18),
+                child: const Icon(Icons.trending_up, color: AppColors.primary, size: 17),
               ),
-              MatchScoreRing(score: job.matchScore, size: 36),
+              MatchScoreRing(score: job.matchScore, size: 34),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           Text(job.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -372,7 +376,7 @@ class _SmallJobCard extends StatelessWidget {
                   .textTheme
                   .bodySmall
                   ?.copyWith(color: AppColors.onSurfaceVariant)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           SizedBox(
             width: double.infinity,
             child: JobApplyButton(job: job, applicationId: applicationId, compact: true),

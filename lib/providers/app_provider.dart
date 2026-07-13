@@ -58,9 +58,7 @@ class AppProvider extends ChangeNotifier {
           );
           await _firestore.ensureAdminProfile(cred.user!.uid);
           await _auth.signOut();
-        } catch (_) {
-          // Admin exists with different password — user must reset in Firebase Console
-        }
+        } catch (_) {}
       }
     }
   }

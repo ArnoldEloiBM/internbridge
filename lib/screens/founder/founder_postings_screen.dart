@@ -4,7 +4,6 @@ import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/profile_dialogs.dart';
-import '../../widgets/profile_avatar.dart';
 
 class FounderPostingsScreen extends StatefulWidget {
   const FounderPostingsScreen({super.key});
@@ -56,27 +55,32 @@ class _FounderPostingsScreenState extends State<FounderPostingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Active Postings',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium
-                                      ?.copyWith(fontWeight: FontWeight.w700)),
-                              Text('Manage your internship listings.',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(color: AppColors.onSurfaceVariant)),
-                            ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Active Postings',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700)),
+                                Text('Manage your internship listings.',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: AppColors.onSurfaceVariant)),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 12),
                           ElevatedButton.icon(
                             onPressed: () => showPostInternshipDialog(context),
                             icon: const Icon(Icons.add, size: 18),
                             label: const Text('Post New'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                            ),
                           ),
                         ],
                       ),

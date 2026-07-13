@@ -78,28 +78,31 @@ class FounderProfileScreen extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primary)),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 13),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(startup,
+                                overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleLarge
                                     ?.copyWith(fontWeight: FontWeight.w700)),
                             Text(user.name,
+                                overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
                                     ?.copyWith(color: AppColors.onSurfaceVariant)),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 3),
                             Text(user.email,
+                                overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall
                                     ?.copyWith(color: AppColors.primary)),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 7),
                             StatusChip(
                               label: verificationLabel,
                               backgroundColor: verified

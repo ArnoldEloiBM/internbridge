@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
-import '../../models/models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/profile_dialogs.dart';
 import '../../widgets/profile_avatar.dart';
@@ -67,7 +66,7 @@ class StudentProfileScreen extends StatelessWidget {
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.bold)),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,46 +75,51 @@ class StudentProfileScreen extends StatelessWidget {
                               children: [
                                 Flexible(
                                   child: Text(user.name,
+                                      overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleLarge
                                           ?.copyWith(fontWeight: FontWeight.w700)),
                                 ),
-                                const SizedBox(width: 8),
-                                const StatusChip(
-                                  label: 'ALU Student',
-                                  backgroundColor: AppColors.primaryContainer,
-                                  textColor: AppColors.onPrimaryContainer,
-                                ),
                               ],
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 3),
+                            const StatusChip(
+                              label: 'ALU Student',
+                              backgroundColor: AppColors.primaryContainer,
+                              textColor: AppColors.onPrimaryContainer,
+                            ),
+                            const SizedBox(height: 5),
                             Text(
                               user.bio.isNotEmpty
                                   ? user.bio
                                   : 'ALU student seeking internship experience',
                               style: Theme.of(context)
                                   .textTheme
-                                  .bodyMedium
+                                  .bodySmall
                                   ?.copyWith(color: AppColors.onSurfaceVariant),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 3),
                             Text(user.email,
+                                overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall
                                     ?.copyWith(color: AppColors.primary)),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 3),
                             Row(
                               children: [
                                 const Icon(Icons.location_on_outlined,
-                                    size: 14, color: AppColors.onSurfaceVariant),
-                                const SizedBox(width: 4),
-                                Text(user.location,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(color: AppColors.onSurfaceVariant)),
+                                    size: 13, color: AppColors.onSurfaceVariant),
+                                const SizedBox(width: 3),
+                                Flexible(
+                                  child: Text(user.location,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(color: AppColors.onSurfaceVariant)),
+                                ),
                               ],
                             ),
                           ],

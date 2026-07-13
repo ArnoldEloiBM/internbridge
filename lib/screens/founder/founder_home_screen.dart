@@ -56,6 +56,8 @@ class FounderHomeScreen extends StatelessWidget {
         foregroundColor: AppColors.onPrimary,
         icon: const Icon(Icons.add),
         label: const Text('Post New'),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       body: founderId == null
           ? const Center(child: Text('Sign in as a founder.'))

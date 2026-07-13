@@ -154,7 +154,7 @@ class _RoleCard extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primaryContainer.withOpacity(0.15),
+                    color: AppColors.primaryContainer.withValues(alpha: 0.15),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   )

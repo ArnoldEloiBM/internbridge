@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 
-/// Shared shell that listens for profile-tab requests from AppProvider.
 mixin ShellTabMixin<T extends StatefulWidget> on State<T> {
   int currentIndex = 0;
 

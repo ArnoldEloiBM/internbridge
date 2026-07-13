@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
 
 class FirestoreService {
@@ -260,7 +259,6 @@ class FirestoreService {
     }
   }
 
-  /// Ensures admin Firestore profile exists. Auth account must be created once via register or Firebase console.
   Future<void> ensureAdminProfile(String uid) async {
     await _users.doc(uid).set({
       'name': 'Eloi Buyange',

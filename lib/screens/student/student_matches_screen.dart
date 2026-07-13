@@ -215,6 +215,8 @@ class _MatchCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text('${job.location} · ${job.type} · ${job.salary}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context)
                   .textTheme
                   .bodySmall

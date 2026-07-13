@@ -111,7 +111,7 @@ class _FounderApplicantsScreenState extends State<FounderApplicantsScreen> {
                             ?.copyWith(color: AppColors.onSurfaceVariant)),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _roleFilter,
+                      initialValue: _roleFilter,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Role',
@@ -124,7 +124,7 @@ class _FounderApplicantsScreenState extends State<FounderApplicantsScreen> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _scoreFilter,
+                      initialValue: _scoreFilter,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Match score',
@@ -251,22 +251,41 @@ class _ApplicantCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
             children: [
-              OutlinedButton(
-                onPressed: () => onUpdate(_isShortlisted ? 'Applied' : 'Shortlisted'),
-                child: Text(_isShortlisted ? 'Unshortlist' : 'Shortlist'),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => onUpdate(_isShortlisted ? 'Applied' : 'Shortlisted'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  child: Text(_isShortlisted ? 'Unshortlist' : 'Shortlist'),
+                ),
               ),
-              ElevatedButton(
-                onPressed: () => onUpdate('Accepted'),
-                child: const Text('Accept'),
+              const SizedBox(width: 7),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => onUpdate('Accepted'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  child: const Text('Accept'),
+                ),
               ),
-              OutlinedButton(
-                onPressed: () => onUpdate('Declined'),
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
-                child: const Text('Decline'),
+              const SizedBox(width: 7),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => onUpdate('Declined'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  child: const Text('Decline'),
+                ),
               ),
             ],
           ),

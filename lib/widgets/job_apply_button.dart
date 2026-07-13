@@ -62,7 +62,7 @@ class JobApplyButton extends StatelessWidget {
           minimumSize: compact ? Size.zero : null,
           tapTargetSize: compact ? MaterialTapTargetSize.shrinkWrap : null,
         ),
-        child: Text(compact ? 'Withdraw' : 'Applied — Withdraw', style: const TextStyle(fontSize: 12)),
+        child: Text(compact ? 'Withdraw' : 'Withdraw Application', style: const TextStyle(fontSize: 12)),
       );
     }
 
