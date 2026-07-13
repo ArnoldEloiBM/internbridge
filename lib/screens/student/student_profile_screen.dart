@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../models/models.dart';
 import '../../providers/app_provider.dart';
+import '../../utils/profile_dialogs.dart';
+import '../../widgets/profile_avatar.dart';
 import '../../widgets/shared_widgets.dart';
 import '../auth/auth_helpers.dart';
 
@@ -11,8 +14,12 @@ class StudentProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AppProvider>().user;
-    final name = user?.name ?? 'Student';
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text('Not signed in.')));
+    }
+
+    final initial = user.name.isNotEmpty ? user.name[0].toUpperCase() : '?';
+    final skills = user.skills.isNotEmpty ? user.skills : ['Flutter', 'Teamwork'];
 
     return Scaffold(
       appBar: AppBar(
@@ -26,17 +33,7 @@ class StudentProfileScreen extends StatelessWidget {
                     color: AppColors.primary, fontWeight: FontWeight.w800)),
           ],
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.surfaceContainerHigh,
-              child: const Icon(Icons.person,
-                  size: 18, color: AppColors.onSurfaceVariant),
-            ),
-          ),
-        ],
+        actions: const [ProfileAvatarButton()],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, color: AppColors.outlineVariant),
@@ -47,7 +44,6 @@ class StudentProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile header
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -60,33 +56,16 @@ class StudentProfileScreen extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 44,
-                            backgroundColor: AppColors.surfaceContainerHigh,
-                            child: Text(initial,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineLarge
-                                    ?.copyWith(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.bold)),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.verified,
-                                  size: 14, color: Colors.white),
-                            ),
-                          ),
-                        ],
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: AppColors.surfaceContainerHigh,
+                        child: Text(initial,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -95,13 +74,15 @@ class StudentProfileScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Text(name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(fontWeight: FontWeight.w700)),
+                                Flexible(
+                                  child: Text(user.name,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(fontWeight: FontWeight.w700)),
+                                ),
                                 const SizedBox(width: 8),
-                                StatusChip(
+                                const StatusChip(
                                   label: 'ALU Student',
                                   backgroundColor: AppColors.primaryContainer,
                                   textColor: AppColors.onPrimaryContainer,
@@ -109,35 +90,32 @@ class StudentProfileScreen extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            Text('Software Engineering Undergrad & UI Enthusiast',
+                            Text(
+                              user.bio.isNotEmpty
+                                  ? user.bio
+                                  : 'ALU student seeking internship experience',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: AppColors.onSurfaceVariant),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(user.email,
                                 style: Theme.of(context)
                                     .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: AppColors.onSurfaceVariant)),
-                            const SizedBox(height: 8),
+                                    .bodySmall
+                                    ?.copyWith(color: AppColors.primary)),
+                            const SizedBox(height: 4),
                             Row(
                               children: [
                                 const Icon(Icons.location_on_outlined,
                                     size: 14, color: AppColors.onSurfaceVariant),
                                 const SizedBox(width: 4),
-                                Text('Kigali, Rwanda',
+                                Text(user.location,
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelSmall
-                                        ?.copyWith(
-                                            color: AppColors.onSurfaceVariant,
-                                            letterSpacing: 0.5)),
-                                const SizedBox(width: 12),
-                                const Icon(Icons.calendar_today_outlined,
-                                    size: 14, color: AppColors.primary),
-                                const SizedBox(width: 4),
-                                Text('Available Summer 2024',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                            color: AppColors.primary,
-                                            letterSpacing: 0.5)),
+                                        ?.copyWith(color: AppColors.onSurfaceVariant)),
                               ],
                             ),
                           ],
@@ -146,248 +124,105 @@ class StudentProfileScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          child: const Text('Hire Jordan'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {},
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: const BorderSide(color: AppColors.primary),
-                          ),
-                          child: const Text('Message'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left column
-                Expanded(
-                  flex: 6,
-                  child: Column(
-                    children: [
-                      _SectionCard(
-                        icon: Icons.school,
-                        title: 'Education',
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerHigh,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.account_balance,
-                                  color: AppColors.primary),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('African Leadership University',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(fontWeight: FontWeight.bold)),
-                                  Text('B.Sc. (Hons) in Software Engineering',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                              color: AppColors.onSurfaceVariant)),
-                                  Text('2021 — 2025 (Expected)',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(color: AppColors.outline)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _SectionCard(
-                        icon: Icons.psychology,
-                        title: 'Skills',
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            const SkillTag(label: 'React.js'),
-                            const SkillTag(label: 'Python'),
-                            SkillTag(label: 'UI/UX Design', highlighted: true),
-                            const SkillTag(label: 'Tailwind CSS'),
-                            const SkillTag(label: 'Node.js'),
-                            const SkillTag(label: 'Git/GitHub'),
-                            const SkillTag(label: 'Project Management'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Right column
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    children: [
-                      _SectionCard(
-                        icon: Icons.link,
-                        title: 'Portfolio',
-                        child: Column(
-                          children: [
-                            _PortfolioLink(icon: Icons.code, label: 'GitHub'),
-                            _PortfolioLink(icon: Icons.work_outline, label: 'LinkedIn'),
-                            _PortfolioLink(
-                                icon: Icons.language, label: 'Personal Portfolio'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Profile strength
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          children: [
-                            Text('PROFILE STRENGTH',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                        color: Colors.white70,
-                                        letterSpacing: 1)),
-                            const SizedBox(height: 8),
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: Colors.white30, width: 4),
-                              ),
-                              child: Center(
-                                child: Text('92%',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall
-                                        ?.copyWith(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Excellent candidate for Junior Dev Roles',
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Featured project
-            Text('Featured Project',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.outlineVariant),
-              ),
-              child: Stack(
-                children: [
-                  const Center(
-                    child: Icon(Icons.code, size: 64, color: AppColors.outlineVariant),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                        ),
-                        borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(12)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('AgriTech Analytics Dashboard',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600)),
-                                Text(
-                                  'A real-time monitoring tool for sustainable farming built with React and IoT sensors.',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white24,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Icon(Icons.arrow_forward,
-                                color: Colors.white, size: 18),
-                          ),
-                        ],
-                      ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => showEditProfileDialog(context),
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Edit Profile'),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Text('PROFILE STRENGTH',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Colors.white70,
+                            letterSpacing: 1,
+                          )),
+                  const SizedBox(height: 8),
+                  Text('${user.profileStrength}%',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          )),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Based on your self-rated skills',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Skills — tap to rate (0–100)',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(
+              'Your ratings update match scores on Home and Matches.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: skills.map((skill) {
+                final rating = user.skillRatings[skill] ?? 70;
+                return ActionChip(
+                  label: Text('$skill · $rating%'),
+                  onPressed: () => showSkillRatingDialog(context, skill),
+                  backgroundColor: AppColors.surfaceContainer,
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () async {
+                final ctrl = TextEditingController();
+                final skill = await showDialog<String>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Add skill'),
+                    content: TextField(
+                      controller: ctrl,
+                      decoration: const InputDecoration(hintText: 'e.g. Python'),
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                      ElevatedButton(
+                          onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+                          child: const Text('Add')),
+                    ],
+                  ),
+                );
+                if (skill != null && skill.isNotEmpty && context.mounted) {
+                  await showSkillRatingDialog(context, skill);
+                }
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add skill'),
+            ),
+            const SizedBox(height: 16),
+            _InfoTile(icon: Icons.school, label: 'University', value: user.university),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -408,67 +243,39 @@ class StudentProfileScreen extends StatelessWidget {
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Widget child;
-  const _SectionCard(
-      {required this.icon, required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: AppColors.primary, size: 18),
-              const SizedBox(width: 8),
-              Text(title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w600)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _PortfolioLink extends StatelessWidget {
+class _InfoTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _PortfolioLink({required this.icon, required this.label});
+  final String value;
+  const _InfoTile({required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.outlineVariant),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.onSurfaceVariant),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(label,
-                style: Theme.of(context).textTheme.bodySmall),
+          Icon(icon, color: AppColors.primary, size: 20),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      )),
+              Text(value,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w600)),
+            ],
           ),
-          const Icon(Icons.open_in_new, size: 14, color: AppColors.outline),
         ],
       ),
     );

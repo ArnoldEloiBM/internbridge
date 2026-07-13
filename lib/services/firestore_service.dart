@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
 
 class FirestoreService {
@@ -6,6 +7,8 @@ class FirestoreService {
       : _db = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
+
+  static const adminEmail = 'eloibuyange@gmail.com';
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
@@ -18,10 +21,20 @@ class FirestoreService {
     await _users.doc(user.id).set(user.toMap());
   }
 
+  Future<void> updateUser(String uid, Map<String, dynamic> data) async {
+    await _users.doc(uid).update(data);
+  }
+
   Future<AppUser?> getUser(String uid) async {
     final doc = await _users.doc(uid).get();
     if (!doc.exists) return null;
     return AppUser.fromDoc(doc);
+  }
+
+  Future<AppUser?> getUserByEmail(String email) async {
+    final snap = await _users.where('email', isEqualTo: email).limit(1).get();
+    if (snap.docs.isEmpty) return null;
+    return AppUser.fromDoc(snap.docs.first);
   }
 
   Stream<AppUser?> watchUser(String uid) {
@@ -31,7 +44,7 @@ class FirestoreService {
     });
   }
 
-  Stream<List<JobPosting>> watchOpportunities({List<String> studentSkills = const []}) {
+  Stream<List<JobPosting>> watchOpportunities({Map<String, int> skillRatings = const {}}) {
     return _opportunities.snapshots().map((snap) {
       final docs = snap.docs.where((doc) => doc.data()['isActive'] == true).toList();
       docs.sort((a, b) {
@@ -43,7 +56,7 @@ class FirestoreService {
           .map((doc) => JobPosting.fromDoc(
                 doc,
                 matchScore: computeMatchScore(
-                  studentSkills,
+                  skillRatings,
                   List<String>.from(
                     (doc.data()['skills'] as List?)?.cast<String>() ?? [],
                   ),
@@ -92,6 +105,24 @@ class FirestoreService {
     });
   }
 
+  Stream<Map<String, String>> watchStudentAppliedMap(String studentId) {
+    return _applications
+        .where('studentId', isEqualTo: studentId)
+        .snapshots()
+        .map((snap) {
+      final map = <String, String>{};
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final oppId = data['opportunityId'] as String?;
+        final status = data['status'] as String? ?? '';
+        if (oppId != null && !['Withdrawn', 'Declined'].contains(status)) {
+          map[oppId] = doc.id;
+        }
+      }
+      return map;
+    });
+  }
+
   Stream<List<Applicant>> watchFounderApplicants(String founderId) {
     return _applications
         .where('founderId', isEqualTo: founderId)
@@ -103,20 +134,20 @@ class FirestoreService {
     });
   }
 
-  Future<bool> hasApplied(String studentId, String opportunityId) async {
-    final snap = await _applications
-        .where('studentId', isEqualTo: studentId)
-        .get();
-    return snap.docs.any((doc) => doc.data()['opportunityId'] == opportunityId);
-  }
-
   Future<void> submitApplication({
     required AppUser student,
     required JobPosting job,
     required int matchScore,
   }) async {
-    final alreadyApplied = await hasApplied(student.id, job.id);
-    if (alreadyApplied) {
+    final snap = await _applications
+        .where('studentId', isEqualTo: student.id)
+        .get();
+    final existing = snap.docs.where(
+      (d) =>
+          d.data()['opportunityId'] == job.id &&
+          !['Withdrawn', 'Declined'].contains(d.data()['status']),
+    );
+    if (existing.isNotEmpty) {
       throw StateError('You already applied to this role.');
     }
 
@@ -143,12 +174,17 @@ class FirestoreService {
     await _applications.doc(id).update({'status': status});
   }
 
-  Stream<List<AppUser>> watchPendingFounders() {
-    return _users
-        .where('role', isEqualTo: 'founder')
-        .where('verificationStatus', isEqualTo: 'pending')
-        .snapshots()
-        .map((snap) => snap.docs.map((doc) => AppUser.fromDoc(doc)).toList());
+  Future<void> withdrawApplication(String applicationId) async {
+    final doc = await _applications.doc(applicationId).get();
+    if (!doc.exists) return;
+    final data = doc.data()!;
+    await doc.reference.update({'status': 'Withdrawn'});
+    final oppId = data['opportunityId'] as String?;
+    if (oppId != null) {
+      await _opportunities.doc(oppId).update({
+        'applicantCount': FieldValue.increment(-1),
+      });
+    }
   }
 
   Stream<List<AppUser>> watchAllFounders() {
@@ -158,13 +194,20 @@ class FirestoreService {
         .map((snap) => snap.docs.map((doc) => AppUser.fromDoc(doc)).toList());
   }
 
+  Stream<List<AppUser>> watchAllUsers() {
+    return _users.snapshots().map(
+          (snap) => snap.docs.map((doc) => AppUser.fromDoc(doc)).toList(),
+        );
+  }
+
+  Future<void> setUserSuspended(String uid, bool suspended) async {
+    await _users.doc(uid).update({'suspended': suspended});
+  }
+
   Future<void> updateVerification(String uid, VerificationStatus status) async {
     await _users.doc(uid).update({'verificationStatus': status.name});
     if (status == VerificationStatus.approved) {
-      // mark their listings as ALU verified once startup is approved
-      final posts = await _opportunities
-          .where('founderId', isEqualTo: uid)
-          .get();
+      final posts = await _opportunities.where('founderId', isEqualTo: uid).get();
       for (final doc in posts.docs) {
         await doc.reference.update({'isVerified': true});
       }
@@ -182,7 +225,7 @@ class FirestoreService {
         'location': 'Remote',
         'type': 'Remote',
         'skills': ['React', 'Node.js', 'Git'],
-        'salary': '\$800/mo',
+        'salary': r'$800/mo',
         'isVerified': true,
       },
       {
@@ -191,7 +234,7 @@ class FirestoreService {
         'location': 'Lagos, Nigeria',
         'type': 'Hybrid',
         'skills': ['Social Media', 'Content', 'Canva'],
-        'salary': '\$600/mo',
+        'salary': r'$600/mo',
         'isVerified': true,
       },
       {
@@ -200,7 +243,7 @@ class FirestoreService {
         'location': 'Kigali, Rwanda',
         'type': 'On-site',
         'skills': ['Figma', 'Design Ops', 'Prototyping'],
-        'salary': '\$700/mo',
+        'salary': r'$700/mo',
         'isVerified': true,
       },
     ];
@@ -215,5 +258,19 @@ class FirestoreService {
         'createdAt': FieldValue.serverTimestamp(),
       });
     }
+  }
+
+  /// Ensures admin Firestore profile exists. Auth account must be created once via register or Firebase console.
+  Future<void> ensureAdminProfile(String uid) async {
+    await _users.doc(uid).set({
+      'name': 'Eloi Buyange',
+      'email': adminEmail,
+      'role': 'admin',
+      'university': 'African Leadership University',
+      'skills': [],
+      'skillRatings': {},
+      'verificationStatus': 'approved',
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 }

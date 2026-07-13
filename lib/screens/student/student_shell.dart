@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../utils/shell_mixin.dart';
 import 'student_home_screen.dart';
 import 'student_matches_screen.dart';
 import 'student_applications_screen.dart';
@@ -12,9 +13,7 @@ class StudentShell extends StatefulWidget {
   State<StudentShell> createState() => _StudentShellState();
 }
 
-class _StudentShellState extends State<StudentShell> {
-  int _currentIndex = 0;
-
+class _StudentShellState extends State<StudentShell> with ShellTabMixin {
   final _screens = const [
     StudentHomeScreen(),
     StudentMatchesScreen(),
@@ -25,14 +24,14 @@ class _StudentShellState extends State<StudentShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: _screens[currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.outlineVariant)),
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
+          currentIndex: currentIndex,
+          onTap: (i) => setState(() => currentIndex = i),
           type: BottomNavigationBarType.fixed,
           backgroundColor: AppColors.surface,
           selectedItemColor: AppColors.onPrimaryContainer,
@@ -52,7 +51,7 @@ class _StudentShellState extends State<StudentShell> {
 
   BottomNavigationBarItem _navItem(
       IconData icon, IconData activeIcon, String label, int index) {
-    final isActive = _currentIndex == index;
+    final isActive = currentIndex == index;
     return BottomNavigationBarItem(
       icon: Container(
         padding: isActive

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../providers/app_provider.dart';
+import '../../utils/profile_dialogs.dart';
+import '../../widgets/profile_avatar.dart';
 
 class FounderPostingsScreen extends StatefulWidget {
   const FounderPostingsScreen({super.key});
@@ -12,90 +14,6 @@ class FounderPostingsScreen extends StatefulWidget {
 }
 
 class _FounderPostingsScreenState extends State<FounderPostingsScreen> {
-  Future<void> _showPostDialog() async {
-    final titleCtrl = TextEditingController();
-    final locationCtrl = TextEditingController(text: 'Remote');
-    final salaryCtrl = TextEditingController(text: 'Stipend TBD');
-    final skillsCtrl = TextEditingController(text: 'Flutter, Teamwork');
-    String workType = 'Remote';
-
-    final posted = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Post New Internship'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(labelText: 'Role title'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: locationCtrl,
-                decoration: const InputDecoration(labelText: 'Location'),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: workType,
-                decoration: const InputDecoration(labelText: 'Work type'),
-                items: ['Remote', 'Hybrid', 'On-site']
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                    .toList(),
-                onChanged: (v) => workType = v ?? 'Remote',
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: salaryCtrl,
-                decoration: const InputDecoration(labelText: 'Stipend / salary'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: skillsCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Skills (comma separated)',
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Publish')),
-        ],
-      ),
-    );
-
-    if (posted != true || !mounted) return;
-    if (titleCtrl.text.trim().isEmpty) return;
-
-    try {
-      await context.read<AppProvider>().createPosting(
-            title: titleCtrl.text.trim(),
-            location: locationCtrl.text.trim(),
-            type: workType,
-            salary: salaryCtrl.text.trim(),
-            skills: skillsCtrl.text
-                .split(',')
-                .map((s) => s.trim())
-                .where((s) => s.isNotEmpty)
-                .toList(),
-          );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Internship posted to Firestore.')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
@@ -156,7 +74,7 @@ class _FounderPostingsScreenState extends State<FounderPostingsScreen> {
                             ],
                           ),
                           ElevatedButton.icon(
-                            onPressed: _showPostDialog,
+                            onPressed: () => showPostInternshipDialog(context),
                             icon: const Icon(Icons.add, size: 18),
                             label: const Text('Post New'),
                           ),

@@ -12,6 +12,9 @@ class AppUser {
   final String? startupName;
   final String university;
   final List<String> skills;
+  final Map<String, int> skillRatings;
+  final String bio;
+  final String location;
   final VerificationStatus verificationStatus;
   final DateTime createdAt;
 
@@ -23,6 +26,9 @@ class AppUser {
     this.startupName,
     this.university = 'African Leadership University',
     this.skills = const [],
+    this.skillRatings = const {},
+    this.bio = '',
+    this.location = 'Kigali, Rwanda',
     this.verificationStatus = VerificationStatus.approved,
     required this.createdAt,
   });
@@ -31,8 +37,17 @@ class AppUser {
       role != UserRole.founder ||
       verificationStatus == VerificationStatus.approved;
 
+  int get profileStrength {
+    if (skillRatings.isEmpty) return 60;
+    final avg = skillRatings.values.reduce((a, b) => a + b) / skillRatings.length;
+    return avg.round().clamp(50, 100);
+  }
+
   factory AppUser.fromDoc(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+    final ratingsRaw = data['skillRatings'] as Map<String, dynamic>? ?? {};
+    final ratings = ratingsRaw.map((k, v) => MapEntry(k, (v as num).toInt()));
+
     return AppUser(
       id: doc.id,
       name: data['name'] ?? '',
@@ -41,6 +56,9 @@ class AppUser {
       startupName: data['startupName'],
       university: data['university'] ?? 'African Leadership University',
       skills: List<String>.from(data['skills'] ?? []),
+      skillRatings: ratings,
+      bio: data['bio'] ?? '',
+      location: data['location'] ?? 'Kigali, Rwanda',
       verificationStatus: _statusFromString(data['verificationStatus']),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -53,9 +71,38 @@ class AppUser {
         if (startupName != null) 'startupName': startupName,
         'university': university,
         'skills': skills,
+        'skillRatings': skillRatings,
+        if (bio.isNotEmpty) 'bio': bio,
+        'location': location,
         'verificationStatus': verificationStatus.name,
         'createdAt': Timestamp.fromDate(createdAt),
       };
+
+  AppUser copyWith({
+    String? name,
+    String? startupName,
+    String? university,
+    List<String>? skills,
+    Map<String, int>? skillRatings,
+    String? bio,
+    String? location,
+    VerificationStatus? verificationStatus,
+  }) {
+    return AppUser(
+      id: id,
+      name: name ?? this.name,
+      email: email,
+      role: role,
+      startupName: startupName ?? this.startupName,
+      university: university ?? this.university,
+      skills: skills ?? this.skills,
+      skillRatings: skillRatings ?? this.skillRatings,
+      bio: bio ?? this.bio,
+      location: location ?? this.location,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      createdAt: createdAt,
+    );
+  }
 }
 
 class JobPosting {
@@ -126,29 +173,6 @@ class JobPosting {
         if (description != null) 'description': description,
         'createdAt': FieldValue.serverTimestamp(),
       };
-
-  JobPosting copyWith({
-    int? applicantCount,
-    bool? isActive,
-    int? matchScore,
-  }) {
-    return JobPosting(
-      id: id,
-      title: title,
-      company: company,
-      location: location,
-      type: type,
-      applicantCount: applicantCount ?? this.applicantCount,
-      isActive: isActive ?? this.isActive,
-      matchScore: matchScore ?? this.matchScore,
-      skills: skills,
-      salary: salary,
-      postedDate: postedDate,
-      isVerified: isVerified,
-      founderId: founderId,
-      description: description,
-    );
-  }
 }
 
 class Applicant {
@@ -182,7 +206,7 @@ class Applicant {
       university: data['university'] ?? 'African Leadership University',
       jobApplied: data['jobTitle'] ?? '',
       matchScore: data['matchScore'] ?? 70,
-      status: data['status'] ?? 'New',
+      status: data['status'] ?? 'Applied',
       avatarUrl: '',
       studentId: data['studentId'],
       opportunityId: data['opportunityId'],
@@ -224,28 +248,6 @@ class Application {
   }
 }
 
-class UserProfile {
-  final String name;
-  final String role;
-  final String university;
-  final String title;
-  final String location;
-  final List<String> skills;
-  final int profileStrength;
-  final String avatarUrl;
-
-  const UserProfile({
-    required this.name,
-    required this.role,
-    required this.university,
-    required this.title,
-    required this.location,
-    required this.skills,
-    required this.profileStrength,
-    required this.avatarUrl,
-  });
-}
-
 UserRole _roleFromString(String? value) {
   switch (value) {
     case 'founder':
@@ -282,13 +284,38 @@ String _formatDate(DateTime? date) {
   return '${months[date.month - 1]} ${date.day}, ${date.year}';
 }
 
-int computeMatchScore(List<String> studentSkills, List<String> jobSkills) {
+/// Match score from self-rated skills vs job requirements.
+int computeMatchScore(Map<String, int> skillRatings, List<String> jobSkills) {
   if (jobSkills.isEmpty) return 72;
-  if (studentSkills.isEmpty) return 65;
+  if (skillRatings.isEmpty) return 65;
 
-  final student = studentSkills.map((s) => s.toLowerCase()).toSet();
-  final job = jobSkills.map((s) => s.toLowerCase()).toSet();
-  final overlap = student.intersection(job).length;
-  final score = 55 + ((overlap / job.length) * 45).round();
-  return score.clamp(60, 98);
+  final ratings = <int>[];
+  for (final jobSkill in jobSkills) {
+    final key = skillRatings.keys.firstWhere(
+      (k) => k.toLowerCase() == jobSkill.toLowerCase(),
+      orElse: () => '',
+    );
+    if (key.isNotEmpty) ratings.add(skillRatings[key]!);
+  }
+
+  if (ratings.isEmpty) {
+    // partial name overlap fallback
+    for (final entry in skillRatings.entries) {
+      for (final job in jobSkills) {
+        if (entry.key.toLowerCase().contains(job.toLowerCase()) ||
+            job.toLowerCase().contains(entry.key.toLowerCase())) {
+          ratings.add(entry.value);
+        }
+      }
+    }
+  }
+
+  if (ratings.isEmpty) return 65;
+  final avg = ratings.reduce((a, b) => a + b) / ratings.length;
+  return avg.round().clamp(60, 98);
+}
+
+int computeMatchScoreFromSkills(List<String> studentSkills, List<String> jobSkills) {
+  final ratings = {for (final s in studentSkills) s: 75};
+  return computeMatchScore(ratings, jobSkills);
 }

@@ -7,7 +7,7 @@ import '../founder/founder_shell.dart';
 import '../student/student_shell.dart';
 import 'login_screen.dart';
 
-/// Sends the user to the right home screen based on their Firestore profile.
+/// Routes user to the right shell after login.
 void navigateForUser(BuildContext context, AppUser? user) {
   if (user == null) {
     Navigator.pushReplacement(
@@ -36,7 +36,7 @@ void navigateForUser(BuildContext context, AppUser? user) {
   );
 }
 
-/// Used after login — admins can also sign in with an email containing "admin".
+/// Login handler.
 Future<void> handleLogin(BuildContext context, String email, String password) async {
   final app = context.read<AppProvider>();
   await app.signIn(email, password);
@@ -44,18 +44,6 @@ Future<void> handleLogin(BuildContext context, String email, String password) as
   var user = app.user;
   if (user == null) {
     throw StateError('Profile not found. Try registering again.');
-  }
-
-  // quick admin override for demo accounts
-  if (email.toLowerCase().contains('admin') && user.role != UserRole.admin) {
-    // still route to admin shell for grading demos
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const AdminShell()),
-      );
-    }
-    return;
   }
 
   if (context.mounted) navigateForUser(context, user);

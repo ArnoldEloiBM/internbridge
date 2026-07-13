@@ -4,6 +4,8 @@ import '../../core/theme.dart';
 import '../../models/models.dart';
 import '../../providers/app_provider.dart';
 import '../../utils/app_helpers.dart';
+import '../../widgets/job_apply_button.dart';
+import '../../widgets/profile_avatar.dart';
 import '../../widgets/shared_widgets.dart';
 
 class StudentHomeScreen extends StatelessWidget {
@@ -12,19 +14,24 @@ class StudentHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
-    final name = app.user?.name ?? 'Student';
+    final user = app.user;
+    final name = user?.name ?? 'Student';
+    final ratings = user?.skillRatings ?? {};
 
     return Scaffold(
       appBar: AppBar(
         leading: Padding(
           padding: const EdgeInsets.all(8),
-          child: CircleAvatar(
-            backgroundColor: AppColors.surfaceContainerHigh,
-            child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : '?',
-              style: const TextStyle(
-                color: AppColors.onSurfaceVariant,
-                fontWeight: FontWeight.bold,
+          child: GestureDetector(
+            onTap: () => app.requestTab(3),
+            child: CircleAvatar(
+              backgroundColor: AppColors.surfaceContainerHigh,
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -36,13 +43,14 @@ class StudentHomeScreen extends StatelessWidget {
               .titleLarge
               ?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
         ),
+        actions: const [ProfileAvatarButton()],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, color: AppColors.outlineVariant),
         ),
       ),
       body: StreamBuilder<List<JobPosting>>(
-        stream: app.db.watchOpportunities(studentSkills: app.user?.skills ?? []),
+        stream: app.db.watchOpportunities(skillRatings: ratings),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -54,7 +62,7 @@ class StudentHomeScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'No opportunities yet. Check back soon — ALU startups are posting regularly.',
+                  'No opportunities yet. Check back soon.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: AppColors.onSurfaceVariant,
@@ -65,7 +73,8 @@ class StudentHomeScreen extends StatelessWidget {
           }
 
           final featured = jobs.first;
-          final others = jobs.length > 1 ? jobs.sublist(1, jobs.length.clamp(1, 3)) : <JobPosting>[];
+          final others =
+              jobs.length > 1 ? jobs.sublist(1, jobs.length.clamp(1, 3)) : <JobPosting>[];
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -88,21 +97,13 @@ class StudentHomeScreen extends StatelessWidget {
                       ?.copyWith(color: AppColors.onSurfaceVariant),
                 ),
                 const SizedBox(height: 24),
-                StreamBuilder<List<Application>>(
-                  stream: app.user == null
-                      ? null
-                      : app.db.watchStudentApplications(app.user!.id),
-                  builder: (context, appSnap) {
-                    final apps = appSnap.data ?? [];
-                    return Row(
-                      children: [
-                        Expanded(child: _ApplicationsCard(applications: apps)),
-                        const SizedBox(width: 12),
-                        const Expanded(child: _BookmarksCard()),
-                      ],
-                    );
-                  },
-                ),
+                if (user != null)
+                  StreamBuilder<List<Application>>(
+                    stream: app.db.watchStudentApplications(user.id),
+                    builder: (context, appSnap) {
+                      return _ApplicationsCard(applications: appSnap.data ?? []);
+                    },
+                  ),
                 const SizedBox(height: 24),
                 Text(
                   'Recommended For You',
@@ -112,20 +113,43 @@ class StudentHomeScreen extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
-                _FeaturedJobCard(job: featured),
-                if (others.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      if (others.isNotEmpty)
-                        Expanded(child: _SmallJobCard(job: others[0])),
-                      if (others.length > 1) ...[
-                        const SizedBox(width: 12),
-                        Expanded(child: _SmallJobCard(job: others[1])),
-                      ],
-                    ],
+                if (user != null)
+                  StreamBuilder<Map<String, String>>(
+                    stream: app.db.watchStudentAppliedMap(user.id),
+                    builder: (context, appliedSnap) {
+                      final applied = appliedSnap.data ?? {};
+                      return Column(
+                        children: [
+                          _FeaturedJobCard(
+                            job: featured,
+                            applicationId: applied[featured.id],
+                          ),
+                          if (others.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _SmallJobCard(
+                                    job: others[0],
+                                    applicationId: applied[others[0].id],
+                                  ),
+                                ),
+                                if (others.length > 1) ...[
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _SmallJobCard(
+                                      job: others[1],
+                                      applicationId: applied[others[1].id],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
-                ],
               ],
             ),
           );
@@ -142,12 +166,15 @@ class _ApplicationsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pending = applications
-        .where((a) => ['Applied', 'Viewed'].contains(a.status))
+        .where((a) => ['Applied', 'Viewed', 'Shortlisted'].contains(a.status))
         .length;
     final accepted = applications.where((a) => a.status == 'Accepted').length;
-    final rejected = applications.where((a) => a.status == 'Rejected').length;
+    final rejected = applications
+        .where((a) => ['Rejected', 'Declined', 'Withdrawn'].contains(a.status))
+        .length;
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
@@ -170,19 +197,22 @@ class _ApplicationsCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _StatBadge(count: '$pending', label: 'Pending', color: const Color(0xFFFFEB3B)),
-              _StatBadge(
-                  count: '$accepted',
-                  label: 'Accepted',
-                  color: const Color(0xFF4CAF50),
-                  textColor: Colors.white),
-              _StatBadge(
-                  count: '$rejected',
-                  label: 'Rejected',
-                  color: const Color(0xFFFF5630),
-                  textColor: Colors.white),
+              Expanded(child: _StatBadge(count: '$pending', label: 'Pending', color: const Color(0xFFFFEB3B))),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _StatBadge(
+                      count: '$accepted',
+                      label: 'Accepted',
+                      color: const Color(0xFF4CAF50),
+                      textColor: Colors.white)),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _StatBadge(
+                      count: '$rejected',
+                      label: 'Rejected',
+                      color: const Color(0xFFFF5630),
+                      textColor: Colors.white)),
             ],
           ),
         ],
@@ -207,93 +237,34 @@ class _StatBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: [
-          Text(count,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          FittedBox(
+            child: Text(count,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          ),
           const SizedBox(height: 2),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                  fontSize: 9, fontWeight: FontWeight.bold, color: textColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BookmarksCard extends StatelessWidget {
-  const _BookmarksCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Bookmarks',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                  Text('Opportunities you\'re watching',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.onSurfaceVariant)),
-                ],
+          FittedBox(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(999),
               ),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text('—',
-                      style: TextStyle(
-                          color: AppColors.onPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16)),
-                ),
+              child: Text(
+                label,
+                style: TextStyle(
+                    fontSize: 8, fontWeight: FontWeight.bold, color: textColor),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Save roles from Matches to track them here.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
+            ),
           ),
         ],
       ),
@@ -303,7 +274,8 @@ class _BookmarksCard extends StatelessWidget {
 
 class _FeaturedJobCard extends StatelessWidget {
   final JobPosting job;
-  const _FeaturedJobCard({required this.job});
+  final String? applicationId;
+  const _FeaturedJobCard({required this.job, this.applicationId});
 
   @override
   Widget build(BuildContext context) {
@@ -315,15 +287,16 @@ class _FeaturedJobCard extends StatelessWidget {
         border: Border.all(color: AppColors.outlineVariant),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.code, color: AppColors.primary, size: 32),
+            child: const Icon(Icons.work_outline, color: AppColors.primary, size: 28),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -335,39 +308,13 @@ class _FeaturedJobCard extends StatelessWidget {
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w600)),
-                Row(
-                  children: [
-                    Text(job.company,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.onSurfaceVariant)),
-                    const SizedBox(width: 4),
-                    if (job.isVerified)
-                      const Icon(Icons.verified, color: AppColors.primary, size: 14),
-                    const SizedBox(width: 2),
-                    if (job.isVerified)
-                      Text('ALU Verified',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(color: AppColors.primary)),
-                  ],
-                ),
+                Text(job.company,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.onSurfaceVariant)),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => applyForJob(context, job),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text('Apply Now', style: TextStyle(fontSize: 12)),
-                    ),
-                  ],
-                ),
+                JobApplyButton(job: job, applicationId: applicationId, compact: true),
               ],
             ),
           ),
@@ -380,7 +327,8 @@ class _FeaturedJobCard extends StatelessWidget {
 
 class _SmallJobCard extends StatelessWidget {
   final JobPosting job;
-  const _SmallJobCard({required this.job});
+  final String? applicationId;
+  const _SmallJobCard({required this.job, this.applicationId});
 
   @override
   Widget build(BuildContext context) {
@@ -398,63 +346,36 @@ class _SmallJobCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: AppColors.primaryFixed,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.trending_up, color: AppColors.primary, size: 20),
+                child: const Icon(Icons.trending_up, color: AppColors.primary, size: 18),
               ),
-              MatchScoreRing(score: job.matchScore, size: 40),
+              MatchScoreRing(score: job.matchScore, size: 36),
             ],
           ),
           const SizedBox(height: 8),
           Text(job.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context)
                   .textTheme
                   .titleSmall
                   ?.copyWith(fontWeight: FontWeight.bold)),
-          Row(
-            children: [
-              Text(job.company,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.onSurfaceVariant)),
-              const SizedBox(width: 2),
-              if (job.isVerified)
-                const Icon(Icons.verified, color: AppColors.primary, size: 12),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 4,
-            children: job.skills
-                .map((s) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(s,
-                          style: const TextStyle(
-                              fontSize: 9, color: AppColors.onSurfaceVariant)),
-                    ))
-                .toList(),
-          ),
+          Text(job.company,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppColors.onSurfaceVariant)),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => applyForJob(context, job),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text('Apply Now', style: TextStyle(fontSize: 12)),
-            ),
+            child: JobApplyButton(job: job, applicationId: applicationId, compact: true),
           ),
         ],
       ),
