@@ -202,11 +202,22 @@ class _MatchCard extends StatelessWidget {
                             .textTheme
                             .titleSmall
                             ?.copyWith(fontWeight: FontWeight.w600)),
-                    Text(job.company,
-                        style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(job.company,
+                              style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                        if (job.isVerified) ...[
+                          const SizedBox(width: 4),
+                          const Icon(Icons.verified,
+                              color: AppColors.primary, size: 14),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),

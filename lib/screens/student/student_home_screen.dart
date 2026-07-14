@@ -310,12 +310,23 @@ class _FeaturedJobCard extends StatelessWidget {
                         .textTheme
                         .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w600)),
-                Text(job.company,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.onSurfaceVariant)),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(job.company,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppColors.onSurfaceVariant)),
+                    ),
+                    if (job.isVerified) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.verified,
+                          color: AppColors.primary, size: 14),
+                    ],
+                  ],
+                ),
                 const SizedBox(height: 8),
                 JobApplyButton(job: job, applicationId: applicationId, compact: true),
               ],
@@ -369,13 +380,21 @@ class _SmallJobCard extends StatelessWidget {
                   .textTheme
                   .titleSmall
                   ?.copyWith(fontWeight: FontWeight.bold)),
-          Text(job.company,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.onSurfaceVariant)),
+          Row(
+            children: [
+              Expanded(
+                child: Text(job.company,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.onSurfaceVariant)),
+              ),
+              if (job.isVerified)
+                const Icon(Icons.verified, color: AppColors.primary, size: 14),
+            ],
+          ),
           const SizedBox(height: 7),
           SizedBox(
             width: double.infinity,

@@ -103,6 +103,42 @@ class FounderHomeScreen extends StatelessWidget {
                                 .bodyMedium
                                 ?.copyWith(color: AppColors.onSurfaceVariant),
                           ),
+                          if (!verified &&
+                              user?.verificationStatus ==
+                                  VerificationStatus.pending) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF4E5),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(0xFFB76E00)
+                                      .withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.pending_actions,
+                                      color: Color(0xFFB76E00), size: 20),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Your startup is pending admin verification.',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: const Color(0xFFB76E00),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 20),
                           Row(
                             children: [

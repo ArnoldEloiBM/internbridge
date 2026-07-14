@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
@@ -9,6 +11,7 @@ class AppProvider extends ChangeNotifier {
 
   final FirestoreService _firestore;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription<AppUser?>? _userSub;
 
   AppUser? _user;
   bool _busy = false;
@@ -27,9 +30,16 @@ class AppProvider extends ChangeNotifier {
 
     final firebaseUser = _auth.currentUser;
     if (firebaseUser != null) {
-      _user = await _firestore.getUser(firebaseUser.uid);
-      notifyListeners();
+      _listenToUser(firebaseUser.uid);
     }
+  }
+
+  void _listenToUser(String uid) {
+    _userSub?.cancel();
+    _userSub = _firestore.watchUser(uid).listen((user) {
+      _user = user;
+      notifyListeners();
+    });
   }
 
   Future<void> _ensureAdminAccount() async {
@@ -87,6 +97,7 @@ class AppProvider extends ChangeNotifier {
         password: password,
       );
       _user = await _firestore.getUser(cred.user!.uid);
+      _listenToUser(cred.user!.uid);
       _error = null;
     } on FirebaseAuthException catch (e) {
       _error = _authMessage(e);
@@ -123,6 +134,7 @@ class AppProvider extends ChangeNotifier {
 
       await _firestore.createUser(profile);
       _user = profile;
+      _listenToUser(profile.id);
       _error = null;
     } on FirebaseAuthException catch (e) {
       _error = _authMessage(e);
@@ -157,6 +169,7 @@ class AppProvider extends ChangeNotifier {
 
       await _firestore.createUser(profile);
       _user = profile;
+      _listenToUser(profile.id);
       _error = null;
     } on FirebaseAuthException catch (e) {
       _error = _authMessage(e);
@@ -265,9 +278,17 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    _userSub?.cancel();
+    _userSub = null;
     await _auth.signOut();
     _user = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _userSub?.cancel();
+    super.dispose();
   }
 
   FirestoreService get db => _firestore;

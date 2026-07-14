@@ -205,12 +205,34 @@ class FirestoreService {
 
   Future<void> updateVerification(String uid, VerificationStatus status) async {
     await _users.doc(uid).update({'verificationStatus': status.name});
-    if (status == VerificationStatus.approved) {
-      final posts = await _opportunities.where('founderId', isEqualTo: uid).get();
-      for (final doc in posts.docs) {
-        await doc.reference.update({'isVerified': true});
-      }
+    final posts = await _opportunities.where('founderId', isEqualTo: uid).get();
+    final isVerified = status == VerificationStatus.approved;
+    for (final doc in posts.docs) {
+      await doc.reference.update({'isVerified': isVerified});
     }
+  }
+
+  Future<void> deleteUser(String uid) async {
+    final apps = await _applications
+        .where('studentId', isEqualTo: uid)
+        .get();
+    for (final doc in apps.docs) {
+      await doc.reference.delete();
+    }
+
+    final founderApps = await _applications
+        .where('founderId', isEqualTo: uid)
+        .get();
+    for (final doc in founderApps.docs) {
+      await doc.reference.delete();
+    }
+
+    final posts = await _opportunities.where('founderId', isEqualTo: uid).get();
+    for (final doc in posts.docs) {
+      await doc.reference.delete();
+    }
+
+    await _users.doc(uid).delete();
   }
 
   Future<void> seedDemoOpportunitiesIfEmpty() async {
